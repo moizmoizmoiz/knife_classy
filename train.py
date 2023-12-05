@@ -102,7 +102,7 @@ val_gen = knifeDataset(val_imlist,mode="val")
 val_loader = DataLoader(val_gen,batch_size=config.batch_size,shuffle=False,pin_memory=True,num_workers=8)
 
 ## Loading the model to run
-model = timm.create_model('tf_efficientnet_b0', pretrained=True,num_classes=config.n_classes)
+model = timm.create_model('google/vit-base-patch16-224', pretrained=True,num_classes=config.n_classes)
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 model.to(device)
 
