@@ -49,7 +49,7 @@ class knifeDataset(Dataset):
     #     return im, filename
 
     def read_images(self, index):
-        base_path = '/content/drive/MyDrive/EEEM066/EEEM066_Knife_Classification_dataset/EEEM066_Knife_Classification_dataset/Train'
+        base_path = '/content/drive/MyDrive/EEEM066/EEEM066_Knife_Classification_dataset/EEEM066_Knife_Classification_dataset'
         row = self.images_df.iloc[index]
         filename = str(row.Id)
         full_path = os.path.join(base_path, filename)
