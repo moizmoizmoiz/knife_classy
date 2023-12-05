@@ -13,6 +13,7 @@ from data import knifeDataset
 import timm
 from utils import *
 warnings.filterwarnings('ignore')
+from transformers import ViTForImageClassification
 
 ## Writing the loss and results
 if not os.path.exists("./logs/"):
