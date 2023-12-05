@@ -47,8 +47,6 @@ class knifeDataset(Dataset):
         filename = str(row.Id)
         filename = filename[1:]
         filename = '/content/knives/EEEM066_Knife_Classification_dataset'+ filename
-        print(filename)
-
         im = cv2.imread(filename)[:, :, ::-1]
         return im, filename
 
