@@ -44,7 +44,10 @@ class knifeDataset(Dataset):
 
     def read_images(self,index):
         row = self.images_df.iloc[index]
-        filename = '/content/drive/MyDrive/EEEM066/EEEM066_Knife_Classification_dataset/EEEM066_Knife_Classification_dataset'+str(row.Id)
+        filename = str(row.Id)
+        filename = filename[1:]
+        filename = '/content/drive/MyDrive/EEEM066/EEEM066_Knife_Classification_dataset/' \
+                   'EEEM066_Knife_Classification_dataset'+ filename
         print(filename)
 
         im = cv2.imread(filename)[:, :, ::-1]
