@@ -40,12 +40,14 @@ class knifeDataset(Dataset):
                     T.Resize((config.img_weight,config.img_height)),
                     T.ToTensor(),
                     T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])(X)
-        return X.float(),labels, fname
+        return X.float(), labels, fname
 
     def read_images(self,index):
         row = self.images_df.iloc[index]
         filename = '/content/drive/MyDrive/EEEM066/EEEM066_Knife_Classification_dataset/EEEM066_Knife_Classification_dataset'+str(row.Id)
-        im = cv2.imread(filename)[:,:,::-1]
+        print(filename)
+
+        im = cv2.imread(filename)[:, :, ::-1]
         return im, filename
 
     # def read_images(self, index):
