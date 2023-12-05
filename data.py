@@ -48,10 +48,12 @@ class knifeDataset(Dataset):
     #     im = cv2.imread(filename)[:,:,::-1]
     #     return im, filename
 
-def read_images(self, index):
-    base_path = '/content/drive/MyDrive/EEEM066/EEEM066_Knife_Classification_dataset/EEEM066_Knife_Classification_dataset/Train'
-    row = self.images_df.iloc[index]
-    filename = str(row.Id)
-    full_path = os.path.join(base_path, filename)
-    im = cv2.imread(full_path)[:,:,::-1]
-    return im, full_path
+    def read_images(self, index):
+        base_path = '/content/drive/MyDrive/EEEM066/EEEM066_Knife_Classification_dataset/EEEM066_Knife_Classification_dataset/Train'
+        row = self.images_df.iloc[index]
+        filename = str(row.Id)
+        full_path = os.path.join(base_path, filename)
+        im = cv2.imread(full_path)[:, :, ::-1]
+        return im, full_path
+
+
