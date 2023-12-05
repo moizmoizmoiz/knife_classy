@@ -42,18 +42,18 @@ class knifeDataset(Dataset):
                     T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])(X)
         return X.float(),labels, fname
 
-    # def read_images(self,index):
+    def read_images(self,index):
+        row = self.images_df.iloc[index]
+        filename = '/content/drive/MyDrive/EEEM066/EEEM066_Knife_Classification_dataset/EEEM066_Knife_Classification_dataset'+str(row.Id)
+        im = cv2.imread(filename)[:,:,::-1]
+        return im, filename
+
+    # def read_images(self, index):
+    #     base_path = '/content/drive/MyDrive/EEEM066/EEEM066_Knife_Classification_dataset/EEEM066_Knife_Classification_dataset'
     #     row = self.images_df.iloc[index]
     #     filename = str(row.Id)
-    #     im = cv2.imread(filename)[:,:,::-1]
-    #     return im, filename
-
-    def read_images(self, index):
-        base_path = '/content/drive/MyDrive/EEEM066/EEEM066_Knife_Classification_dataset/EEEM066_Knife_Classification_dataset'
-        row = self.images_df.iloc[index]
-        filename = str(row.Id)
-        full_path = os.path.join(base_path, filename)
-        im = cv2.imread(full_path)[:, :, ::-1]
-        return im, full_path
+    #     full_path = os.path.join(base_path, filename)
+    #     im = cv2.imread(full_path)[:, :, ::-1]
+    #     return im, full_path
 
 
