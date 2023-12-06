@@ -66,7 +66,7 @@ def map_accuracy(probs, truth, k=5):
 
 
 def loading_animation(flag):
-    spinner = ['🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘']
+    spinner = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
     while not flag.is_set():
         for char in spinner:
             sys.stdout.write('\r' + char)  # Carriage return before character
