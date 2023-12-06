@@ -52,9 +52,9 @@ log.open(file_path, 'w')
 
 # log.open("logs/%s_log_train.txt")
 
-log.write('\n          '  +model_training+  '                \n\n')
+log.write('\n                 '  +model_training+  '                \n\n')
 
-log.write("\n──────────────────────────────────────── [START %s] %s\n\n" % (
+log.write("\n───────────────────── [START %s] %s\n\n" % (
     datetime.now().strftime('%Y-%m-%d %H:%M:%S'), '─' * 21))
 log.write('                           ┠───── Train ─────┼───── Valid ───┼─────────┨\n')
 log.write('mode     iter     epoch    ┃       loss      │        mAP    │ time    ┃\n')
@@ -111,7 +111,7 @@ def evaluate(val_loader,model,criterion,epoch,train_loss,start):
             valid_map5, valid_acc1, valid_acc5 = map_accuracy(preds, label)
             map.update(valid_map5,img.size(0))
             print('\r',end='',flush=True)
-            message = '%s   %5.1f %6.1f       │      %0.5f     │      %0.3f    │ %s' % (\
+            message = '%s   %5.1f %6.1f        │      %0.5f     │      %0.3f    │ %s' % (\
                     "val", i, epoch, train_loss[0], map.avg,time_to_str((timer() - start),'min'))
             print(message, end='',flush=True)
         log.write("\n")  
