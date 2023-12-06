@@ -12,6 +12,9 @@ from data import knifeDataset
 import timm
 from utils import *
 import argparse
+import sys
+import time
+import threading
 warnings.filterwarnings('ignore')
 
 if __name__ == '__main__':
@@ -58,24 +61,52 @@ def map_accuracy(probs, truth, k=5):
         acc5 = accs[1]
         return map5, acc1, acc5
 
-
+def loading_animation(flag):
+    spinner = ['🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘']
+    while not flag.is_set():  # Continue until the flag is set
+        for char in spinner:
+            sys.stdout.write(char)
+            sys.stdout.flush()
+            time.sleep(0.1)
+            sys.stdout.write('\b')
 
 ######################## load file and get splits #############################
-print('reading test file')
+print('Reading test file..')
 test_files = pd.read_csv("test.csv")
 print('Creating test dataloader')
 test_gen = knifeDataset(test_files,mode="val")
-test_loader = DataLoader(test_gen,batch_size=64, shuffle=False, pin_memory=True, num_workers=8)
+test_loader = DataLoader(test_gen,batch_size=32, shuffle=False, pin_memory=True, num_workers=8)
 
 print('loading trained model')
 model = timm.create_model(model_training, pretrained=True,num_classes=config.n_classes)
 model.load_state_dict(torch.load("/content/drive/MyDrive/EEEM066/logs/"+model_training+checkpoint+".pt"))
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 model.to(device)
+flag = threading.Event()
 
-############################# Training #################################
-print('Evaluating '+model_training)
-map = evaluate(test_loader,model)
-print("mAP =",map)
+
+def evaluate_model(test_loader, model, flag):
+    # Replace with your evaluate function logic
+    map = evaluate(test_loader, model)
+    print("\nmAP =", map)
+    flag.set()
+
+
+
+loading_thread = threading.Thread(target=loading_animation, args=(flag,))
+loading_thread.start()
+
+# Start the model evaluation
+evaluate_thread = threading.Thread(target=evaluate_model, args=(test_loader, model, flag))
+evaluate_thread.start()
+
+evaluate_thread.join()  # Wait for the evaluation to complete
+loading_thread.join()  # Ensure the loading animation stops after the evaluation
+
+# print("Evaluation complete.")
+# ############################# Training #################################
+# print('Evaluating '+model_training+' at checkpoint number: '+checkpoint)
+# map = evaluate(test_loader,model)
+# print("mAP =",map)
     
    
