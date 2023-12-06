@@ -157,7 +157,8 @@ start_epoch = 0
 val_metrics = [0]
 scaler = torch.cuda.amp.GradScaler()
 start = timer()
-#train
+
+######## train
 for epoch in range(0,config.epochs):
     lr = get_learning_rate(optimizer)
     train_metrics = train(train_loader,model,criterion,optimizer,epoch,val_metrics,start)
