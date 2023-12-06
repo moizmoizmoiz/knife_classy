@@ -13,9 +13,8 @@ from data import knifeDataset
 import timm
 import argparse
 from utils import *
+
 warnings.filterwarnings('ignore')
-
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -23,7 +22,7 @@ if __name__ == '__main__':
     parser.add_argument('--n_classes', type=int, default=192)
     parser.add_argument('--img_width', type=int, default=224)
     parser.add_argument('--img_height', type=int, default=224)
-    parser.add_argument('--batch_size', type=int, default=16)
+    parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--epochs', type=int, default=20)
     parser.add_argument('--learning_rate', type=float, default=0.00005)
     parser.add_argument('--model_training', type=str, default='mobilevit_xxs')
@@ -47,12 +46,12 @@ if not os.path.exists("./logs/"):
     os.mkdir("./logs/")
 log = Logger()
 
-file_path = "logs/" + model_training + "_log_train.txt"
+file_path = "/content/drive/MyDrive/EEEM066/logs/" + model_training + "_log_train.txt"
 log.open(file_path, 'w')
 
 # log.open("logs/%s_log_train.txt")
 
-log.write('\n                     '  +model_training+  '                \n\n')
+log.write('\n                     ' + model_training + '                \n\n')
 
 log.write("\n───────────────────── [START %s] %s\n\n" % (
     datetime.now().strftime('%Y-%m-%d %H:%M:%S'), '─' * 21))
@@ -64,61 +63,62 @@ train_epoch_arr, train_loss_arr, train_map_avg_arr, train_i_arr = [], [], [], []
 val_epoch_arr, val_loss_arr, val_map_avg_arr, val_i_arr = [], [], [], []
 
 
-
 ## Training the model
-def train(train_loader,model,criterion,optimizer,epoch,valid_accuracy,start):
+def train(train_loader, model, criterion, optimizer, epoch, valid_accuracy, start):
     losses = AverageMeter()
     model.train()
-    model.training=True
-    for i,(images,target,fnames) in enumerate(train_loader):
+    model.training = True
+    for i, (images, target, fnames) in enumerate(train_loader):
         img = images.cuda(non_blocking=True)
         label = target.cuda(non_blocking=True)
-        
+
         with torch.cuda.amp.autocast():
             logits = model(img)
         loss = criterion(logits, label)
-        losses.update(loss.item(),images.size(0))
+        losses.update(loss.item(), images.size(0))
         scaler.scale(loss).backward()
         scaler.step(optimizer)
-        scaler.update()        
+        scaler.update()
         optimizer.zero_grad()
         scheduler.step()
 
-        print('\r',end='',flush=True)
-        message = '%s %5.1f %6.1f        │      %0.5f     │      %0.3f     │ %s' % (\
-                "train", i, epoch,losses.avg,valid_accuracy[0],time_to_str((timer() - start),'min'))
-        print(message , end='',flush=True)
+        print('\r', end='', flush=True)
+        message = '%s %5.1f %6.1f        │      %0.5f     │      %0.3f     │ %s' % ( \
+            "train", i, epoch, losses.avg, valid_accuracy[0], time_to_str((timer() - start), 'min'))
+        print(message, end='', flush=True)
     log.write("\n")
     log.write(message)
 
     return [losses.avg]
 
+
 # Validating the model
-def evaluate(val_loader,model,criterion,epoch,train_loss,start):
+def evaluate(val_loader, model, criterion, epoch, train_loss, start):
     model.cuda()
     model.eval()
-    model.training=False
+    model.training = False
     map = AverageMeter()
     with torch.no_grad():
-        for i, (images,target,fnames) in enumerate(val_loader):
+        for i, (images, target, fnames) in enumerate(val_loader):
             img = images.cuda(non_blocking=True)
             label = target.cuda(non_blocking=True)
-            
+
             with torch.cuda.amp.autocast():
                 logits = model(img)
                 preds = logits.softmax(1)
-            
+
             valid_map5, valid_acc1, valid_acc5 = map_accuracy(preds, label)
-            map.update(valid_map5,img.size(0))
-            print('\r',end='',flush=True)
-            message = '%s   %5.1f %6.1f        │      %0.5f     │      %0.3f    │ %s' % (\
-                    "val", i, epoch, train_loss[0], map.avg,time_to_str((timer() - start),'min'))
-            print(message, end='',flush=True)
-        log.write("\n")  
+            map.update(valid_map5, img.size(0))
+            print('\r', end='', flush=True)
+            message = '%s   %5.1f %6.1f        │      %0.5f     │      %0.3f    │ %s' % ( \
+                "val", i, epoch, train_loss[0], map.avg, time_to_str((timer() - start), 'min'))
+            print(message, end='', flush=True)
+        log.write("\n")
         log.write(message)
     return [map.avg]
 
-## Computing the mean average precision, accuracy 
+
+## Computing the mean average precision, accuracy
 def map_accuracy(probs, truth, k=10):
     with torch.no_grad():
         value, top = probs.topk(k, dim=1, largest=True, sorted=True)
@@ -134,22 +134,24 @@ def map_accuracy(probs, truth, k=10):
         acc5 = accs[1]
         return map5, acc1, acc5
 
+
 ######################## load file and get splits #############################
 train_imlist = pd.read_csv("/content/drive/MyDrive/EEEM066/knife_classy/train.csv")
-train_gen = knifeDataset(train_imlist,mode="train")
-train_loader = DataLoader(train_gen,batch_size=config.batch_size,shuffle=True,pin_memory=True,num_workers=8)
+train_gen = knifeDataset(train_imlist, mode="train")
+train_loader = DataLoader(train_gen, batch_size=config.batch_size, shuffle=True, pin_memory=True, num_workers=8)
 val_imlist = pd.read_csv("/content/drive/MyDrive/EEEM066/knife_classy/test.csv")
-val_gen = knifeDataset(val_imlist,mode="val")
-val_loader = DataLoader(val_gen,batch_size=config.batch_size,shuffle=False,pin_memory=True,num_workers=8)
+val_gen = knifeDataset(val_imlist, mode="val")
+val_loader = DataLoader(val_gen, batch_size=config.batch_size, shuffle=False, pin_memory=True, num_workers=8)
 
 ## Loading the model to run
-model = timm.create_model(model_training, pretrained=True,num_classes=config.n_classes)
+model = timm.create_model(model_training, pretrained=True, num_classes=config.n_classes)
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 model.to(device)
 
 ############################# Parameters #################################
 optimizer = optim.Adam(model.parameters(), lr=config.learning_rate)
-scheduler = lr_scheduler.CosineAnnealingLR(optimizer=optimizer, T_max=config.epochs * len(train_loader), eta_min=0,last_epoch=-1)
+scheduler = lr_scheduler.CosineAnnealingLR(optimizer=optimizer, T_max=config.epochs * len(train_loader), eta_min=0,
+                                           last_epoch=-1)
 criterion = nn.CrossEntropyLoss().cuda()
 
 ############################# Training #################################
@@ -159,11 +161,10 @@ scaler = torch.cuda.amp.GradScaler()
 start = timer()
 
 ######## train
-for epoch in range(0,config.epochs):
+for epoch in range(0, config.epochs):
     lr = get_learning_rate(optimizer)
-    train_metrics = train(train_loader,model,criterion,optimizer,epoch,val_metrics,start)
-    val_metrics = evaluate(val_loader,model,criterion,epoch,train_metrics,start)
+    train_metrics = train(train_loader, model, criterion, optimizer, epoch, val_metrics, start)
+    val_metrics = evaluate(val_loader, model, criterion, epoch, train_metrics, start)
     ## Saving the model
-    filename = "/content/drive/MyDrive/EEEM066/logs/"+model_training+str(epoch + 1)+".pt"
+    filename = "/content/drive/MyDrive/EEEM066/logs/" + model_training + str(epoch + 1) + ".pt"
     torch.save(model.state_dict(), filename)
-
