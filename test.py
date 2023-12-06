@@ -20,32 +20,38 @@ warnings.filterwarnings('ignore')
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_training', type=str, default='mobilevit_xxs')
-    parser.add_argument('--checkpoint', type=str, default='10')
+    parser.add_argument('--chec    kpoint
+    ', type=str, default='
+    10
+    ')
 
     args = parser.parse_args()
 
     model_training = args.model_training
     checkpoint = args.checkpoint
+
+
 # Validating the model
-def evaluate(val_loader,model):
+def evaluate(val_loader, model):
     model.cuda()
     model.eval()
-    model.training=False
+    model.training = False
     map = AverageMeter()
     with torch.no_grad():
-        for i, (images,target,fnames) in enumerate(val_loader):
+        for i, (images, target, fnames) in enumerate(val_loader):
             img = images.cuda(non_blocking=True)
             label = target.cuda(non_blocking=True)
-            
+
             with torch.cuda.amp.autocast():
                 logits = model(img)
                 preds = logits.softmax(1)
-            
+
             valid_map5, valid_acc1, valid_acc5 = map_accuracy(preds, label)
-            map.update(valid_map5,img.size(0))
+            map.update(valid_map5, img.size(0))
     return map.avg
 
-## Computing the mean average precision, accuracy 
+
+## Computing the mean average precision, accuracy
 def map_accuracy(probs, truth, k=5):
     with torch.no_grad():
         value, top = probs.topk(k, dim=1, largest=True, sorted=True)
@@ -61,14 +67,15 @@ def map_accuracy(probs, truth, k=5):
         acc5 = accs[1]
         return map5, acc1, acc5
 
+
 def loading_animation(flag):
     spinner = ['🌑', '🌒', '🌓', '🌔', '🌕', '🌖', '🌗', '🌘']
-    while not flag.is_set():  # Continue until the flag is set
+    while not flag.is_set():
         for char in spinner:
-            sys.stdout.write(char)
+            sys.stdout.write('\r' + char)  # Carriage return before character
             sys.stdout.flush()
             time.sleep(0.1)
-            sys.stdout.write('\b')
+    sys.stdout.write('\r     \r')
 
 ######################## load file and get splits #############################
 print('Reading test file..')
