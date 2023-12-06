@@ -13,6 +13,14 @@ import timm
 from utils import *
 warnings.filterwarnings('ignore')
 
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--model_training', type=str, default='mobilevit_xxs')
+
+    args = parser.parse_args()
+
+    model_training = args.model_training
+
 # Validating the model
 def evaluate(val_loader,model):
     model.cuda()
@@ -48,16 +56,18 @@ def map_accuracy(probs, truth, k=5):
         acc5 = accs[1]
         return map5, acc1, acc5
 
+
+
 ######################## load file and get splits #############################
 print('reading test file')
 test_files = pd.read_csv("test.csv")
 print('Creating test dataloader')
 test_gen = knifeDataset(test_files,mode="val")
-test_loader = DataLoader(test_gen,batch_size=64,shuffle=False,pin_memory=True,num_workers=8)
+test_loader = DataLoader(test_gen,batch_size=64, shuffle=False, pin_memory=True, num_workers=8)
 
 print('loading trained model')
 model = timm.create_model('tf_efficientnet_b0', pretrained=True,num_classes=config.n_classes)
-model.load_state_dict(torch.load('Knife-Effb0-E9.pt'))
+model.load_state_dict(torch.load('Knife-Effb0-E20.pt'))
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 model.to(device)
 

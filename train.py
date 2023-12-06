@@ -11,6 +11,7 @@ from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
 from data import knifeDataset
 import timm
+import argparse
 from utils import *
 warnings.filterwarnings('ignore')
 
@@ -23,6 +24,43 @@ log.write("\n----------------------------------------------- [START %s] %s\n\n" 
 log.write('                           |----- Train -----|----- Valid----|---------|\n')
 log.write('mode     iter     epoch    |       loss      |        mAP    | time    |\n')
 log.write('-------------------------------------------------------------------------------------------\n')
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--n_classes', type=int, default=192)
+    parser.add_argument('--img_width', type=int, default=224)
+    parser.add_argument('--img_height', type=int, default=224)
+    parser.add_argument('--batch_size', type=int, default=16)
+    parser.add_argument('--epochs', type=int, default=20)
+    parser.add_argument('--learning_rate', type=float, default=0.00005)
+    parser.add_argument('--model_training', type=str, default='mobilevit_xxs')
+
+    args = parser.parse_args()
+
+    config.n_classes = args.n_classes
+    config.img_weight = args.img_width
+    config.img_height = args.img_height
+    config.batch_size = args.batch_size
+    config.epochs = args.epochs
+    config.learning_rate = args.learning_rate
+    model_training = args.model_training
+
+## Writing the loss and results
+if not os.path.exists("./logs/"):
+    os.mkdir("./logs/")
+log = Logger()
+log.open("logs/%s_log_train.txt")
+log.write("\n----------------------------------------------- [START %s] %s\n\n" % (
+    datetime.now().strftime('%Y-%m-%d %H:%M:%S'), '-' * 51))
+log.write('                           |----- Train -----|----- Valid----|---------|\n')
+log.write('mode     iter     epoch    |       loss      |        mAP    | time    |\n')
+log.write('-------------------------------------------------------------------------------------------\n')
+
+train_epoch_arr, train_loss_arr, train_map_avg_arr, train_i_arr = [], [], [], []
+val_epoch_arr, val_loss_arr, val_map_avg_arr, val_i_arr = [], [], [], []
+
+
 
 ## Training the model
 def train(train_loader,model,criterion,optimizer,epoch,valid_accuracy,start):
@@ -102,7 +140,7 @@ val_gen = knifeDataset(val_imlist,mode="val")
 val_loader = DataLoader(val_gen,batch_size=config.batch_size,shuffle=False,pin_memory=True,num_workers=8)
 
 ## Loading the model to run
-model = timm.create_model('mobilevit_xs', pretrained=True,num_classes=config.n_classes)
+model = timm.create_model(model_training, pretrained=True,num_classes=config.n_classes)
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 model.to(device)
 
