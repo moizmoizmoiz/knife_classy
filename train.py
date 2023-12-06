@@ -40,10 +40,10 @@ if __name__ == '__main__':
     run_name = args.run_name
 
 ## Writing the loss and results
-if not os.path.exists("/content/drive/MyDrive/EEEM066//logs/"):
-    os.mkdir("/content/drive/MyDrive/EEEM066//logs/")
+if not os.path.exists("/content/drive/MyDrive/EEEM066/logs/"):
+    os.mkdir("/content/drive/MyDrive/EEEM066/logs/")
 log = Logger()
-log.open("logs/%s"+model_training+"_log_train.txt", 'w')
+log.open("content/drive/MyDrive/EEEM066/logs/"+model_training+"_log_train.txt", 'w')
 
 log.write('\n          '  +model_training+  '                \n\n')
 
