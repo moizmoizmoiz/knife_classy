@@ -15,6 +15,7 @@ from data import knifeDataset
 
 warnings.filterwarnings('ignore')
 
+
 # Helper Functions
 def compute_metrics(preds, labels):
     """
@@ -23,17 +24,27 @@ def compute_metrics(preds, labels):
     precision, recall, f1, _ = precision_recall_fscore_support(labels, preds, average='weighted')
     return precision, recall, f1
 
-def topk_labels_accuracy(preds, labels, k=5):
+
+def topk_labels_accuracy(preds, labels, k=5, n_classes=192):
     """
-    Computes the top-k accuracy for each label.
+    Computes the top-k accuracy for each label across all batches.
     """
-    label_acc = {}
+    topk_acc = np.zeros(n_classes)
+    count = np.zeros(n_classes)
+
     topk_preds = preds.topk(k, dim=1)[1]
-    for i in range(preds.shape[1]):
-        correct = (topk_preds == i).float() * (labels == i).float()
-        label_acc[i] = correct.sum().item() / (labels == i).float().sum().item()
-    sorted_label_acc = sorted(label_acc.items(), key=lambda x: x[1], reverse=True)
-    return sorted_label_acc[:k]
+    for i in range(n_classes):
+        label_mask = (labels == i)
+        if label_mask.any():
+            selected_preds = topk_preds[label_mask]
+            topk_acc[i] += ((selected_preds == i).sum(dim=1).float().mean().item())
+            count[i] += 1
+
+    topk_acc /= np.maximum(count, 1)  # Avoid division by zero
+    top_k_accuracy = [(i, acc) for i, acc in enumerate(topk_acc) if count[i] > 0]
+    top_k_accuracy.sort(key=lambda x: x[1], reverse=True)
+    return top_k_accuracy[:k]
+
 
 # Computing the mean average precision, accuracy
 def map_accuracy(probs, truth, k=5):
@@ -51,14 +62,17 @@ def map_accuracy(probs, truth, k=5):
         acc5 = accs[1]
         return map5, acc1, acc5
 
+
 # Evaluate Function
-def evaluate(val_loader, model):
+def evaluate(val_loader, model, n_classes=192):
     model.cuda()
     model.eval()
     model.training = False
     map = AverageMeter()
     all_preds = []
     all_labels = []
+    top_k_accuracies = []
+
     with torch.no_grad():
         for i, (images, target, fnames) in enumerate(val_loader):
             img = images.cuda(non_blocking=True)
@@ -74,13 +88,16 @@ def evaluate(val_loader, model):
             valid_map5, valid_acc1, valid_acc5 = map_accuracy(preds, label)
             map.update(valid_map5, img.size(0))
 
+            top_k_accuracies.extend(topk_labels_accuracy(preds, label, n_classes=n_classes))
+
     all_preds = np.concatenate(all_preds)
     all_labels = np.concatenate(all_labels)
 
     precision, recall, f1 = compute_metrics(all_preds, all_labels)
-    top_k_accuracy = topk_labels_accuracy(preds, label)
+    top_k_accuracy = sorted(top_k_accuracies, key=lambda x: x[1], reverse=True)[:5]
 
     return map.avg, precision, recall, f1, top_k_accuracy
+
 
 # Loading Animation
 def loading_animation(flag):
@@ -92,6 +109,7 @@ def loading_animation(flag):
             time.sleep(0.1)
     sys.stdout.write('\r     \r')
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_training', type=str, default='mobilevit_xxs')
@@ -100,37 +118,3 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     model_training = args.model_training
-    checkpoint = args.checkpoint
-
-    # Load file and get splits
-    print('Reading test file..')
-    test_files = pd.read_csv("test.csv")
-    print('Creating test dataloader')
-    test_gen = knifeDataset(test_files, mode="val")
-    test_loader = DataLoader(test_gen, batch_size=32, shuffle=False, pin_memory=True, num_workers=8)
-
-    print('loading trained model')
-    model = timm.create_model(model_training, pretrained=True, num_classes=config.n_classes)
-    model.load_state_dict(torch.load("/content/drive/MyDrive/EEEM066/logs/" + model_training + checkpoint + ".pt"))
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    model.to(device)
-    flag = threading.Event()
-
-    # Evaluate Model
-    def evaluate_model(test_loader, model, flag):
-        map, precision, recall, f1, top_k_accuracy = evaluate(test_loader, model)
-        print("\nmAP =", map)
-        print("Weighted Precision:", precision)
-        print("Weighted Recall:", recall)
-        print("Weighted F1 Score:", f1)
-        print("Top-K Accuracy Performing Labels:", top_k_accuracy)
-        flag.set()
-
-    loading_thread = threading.Thread(target=loading_animation, args=(flag,))
-    loading_thread.start()
-
-    evaluate_thread = threading.Thread(target=evaluate_model, args=(test_loader, model, flag))
-    evaluate_thread.start()
-
-    evaluate_thread.join()
-    loading_thread.join()
