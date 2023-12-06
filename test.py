@@ -297,8 +297,7 @@ print('loading trained model')
 
 
 model = timm.create_model(model_training, pretrained=True, num_classes=config.n_classes)
-modelname = model_training+'30'
-model.load_state_dict(torch.load(modelname))
+model.load_state_dict(torch.load('/content/drive/MyDrive/EEEM066/logs/tf_efficientnet_b030.pt'))
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 model.to(device)
 
