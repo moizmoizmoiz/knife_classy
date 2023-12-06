@@ -208,7 +208,7 @@ import os
 import torch
 
 
-def evaluate(val_loader, model, top_images_count=20, save_dir='./'):
+def evaluate(val_loader, model, top_images_count=20, save_dir='/content/drive/MyDrive/EEEM066/logs/'):
     model.cuda()
     model.eval()
     model.training = False
@@ -291,7 +291,7 @@ print('reading test file')
 test_files = pd.read_csv("test.csv")
 print('Creating test dataloader')
 test_gen = knifeDataset(test_files, mode="val")
-test_loader = DataLoader(test_gen, batch_size=64, shuffle=False, pin_memory=True, num_workers=8)
+test_loader = DataLoader(test_gen, batch_size=32, shuffle=False, pin_memory=True, num_workers=8)
 
 print('loading trained model')
 
