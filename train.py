@@ -43,7 +43,9 @@ if __name__ == '__main__':
 if not os.path.exists("/content/drive/MyDrive/EEEM066/logs/"):
     os.mkdir("/content/drive/MyDrive/EEEM066/logs/")
 log = Logger()
-log.open("content/drive/MyDrive/EEEM066/logs/"+model_training+"_log_train.txt", 'w')
+
+file_path = "content/drive/MyDrive/EEEM066/logs/" + model_training + "_log_train.txt"
+log.open(file_path, 'w')
 
 log.write('\n          '  +model_training+  '                \n\n')
 
