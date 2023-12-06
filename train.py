@@ -110,7 +110,7 @@ def evaluate(val_loader, model, criterion, epoch, train_loss, start):
             valid_map5, valid_acc1, valid_acc5 = map_accuracy(preds, label)
             map.update(valid_map5, img.size(0))
             print('\r', end='', flush=True)
-            message = '%s   %5.1f %6.1f        │      %0.5f     │      %0.3f    │ %s' % ( \
+            message = '%s   %5.1f %6.1f        │      %0.5f     │      %0.3f     │ %s' % ( \
                 "val", i, epoch, train_loss[0], map.avg, time_to_str((timer() - start), 'min'))
             print(message, end='', flush=True)
         log.write("\n")
