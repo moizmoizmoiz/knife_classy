@@ -149,12 +149,11 @@ class MyOwnModel(nn.Module):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model_pre_train', type=str, default='Knife-Effb0-E9.pt')
     parser.add_argument('--model_training', type=str, default='tf_efficientnet_b0')
 
     args = parser.parse_args()
 
-    model_pre_train = args.model_pre_train
+    #model_pre_train = args.model_pre_train
     model_training = args.model_training
 
 # def evaluate(val_loader, model, top_images_count=20, save_dir='./'):
@@ -298,7 +297,8 @@ print('loading trained model')
 
 
 model = timm.create_model(model_training, pretrained=True, num_classes=config.n_classes)
-model.load_state_dict(torch.load(model_pre_train))
+modelname = model_training+'30'
+model.load_state_dict(torch.load(modelname))
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 model.to(device)
 
