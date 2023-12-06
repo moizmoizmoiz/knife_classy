@@ -1,275 +1,52 @@
-## import libraries for training
+# import libraries for training
 import warnings
-from datetime import datetime
-from timeit import default_timer as timer
 import pandas as pd
 import numpy as np
-import torch.optim
-from sklearn.model_selection import train_test_split
-from torch import optim
-from torch.optim import lr_scheduler
-from torch.utils.data import DataLoader
-from data import knifeDataset
+import torch
 import timm
-import matplotlib.pyplot as plt
-from sklearn.metrics import precision_recall_curve
-import torch.nn as nn
-import torch.nn.functional as F
-
+from torch.utils.data import DataLoader
+from sklearn.metrics import precision_recall_fscore_support
+import argparse
+import sys
+import time
+import threading
 from utils import *
+from data import knifeDataset
 
 warnings.filterwarnings('ignore')
 
-# Validating the model
-from torchvision.utils import save_image
-import os
-import argparse
 
-#####
-import timm
-import torch.nn as nn
-
-
-class OwnModel(nn.Module):
-    def __init__(self, config):
-        super(OwnModel, self).__init__()
-        self.our_model_1 = timm.create_model('swin_tiny_patch4_window7_224', pretrained=True,
-                                             num_classes=config.n_classes)
-        self.our_model_2 = timm.create_model('resnet50', pretrained=True, num_classes=config.n_classes)
-
-    def forward(self, x):
-        # Forward pass through both models
-        output1 = self.our_model_1(x)
-        output2 = self.our_model_2(x)
-
-        output = (output1 + output2) / 2
-        return output
+# Helper Functions
+def compute_metrics(preds, labels):
+    """
+    Computes weighted precision, recall, F1 score for each label.
+    """
+    precision, recall, f1, _ = precision_recall_fscore_support(labels, preds, average='weighted')
+    return precision, recall, f1
 
 
-##
+def topk_labels_accuracy(preds, labels, k=5, n_classes=192):
+    """
+    Computes the top-k accuracy for each label across all batches.
+    """
+    topk_acc = np.zeros(n_classes)
+    count = np.zeros(n_classes)
 
-class MyOwnModelRedesigned(nn.Module):
-    def __init__(self, config):
-        super(MyOwnModelRedesigned, self).__init__()
+    topk_preds = preds.topk(k, dim=1)[1]
+    for i in range(n_classes):
+        label_mask = (labels == i)
+        if label_mask.any():
+            selected_preds = topk_preds[label_mask]
+            topk_acc[i] += ((selected_preds == i).sum(dim=1).float().mean().item())
+            count[i] += 1
 
-        # First convolutional block
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3)
-        self.bn1 = nn.BatchNorm2d(64)
-        self.pool1 = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
-
-        # Second convolutional block
-        self.conv2 = nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1)
-        self.bn2 = nn.BatchNorm2d(128)
-        self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
-
-        # Third convolutional block
-        self.conv3 = nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1)
-        self.bn3 = nn.BatchNorm2d(256)
-        self.pool3 = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
-
-        # Fourth convolutional block
-        self.conv4 = nn.Conv2d(256, 512, kernel_size=3, stride=1, padding=1)
-        self.bn4 = nn.BatchNorm2d(512)
-        self.pool4 = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
-
-        # Fifth convolutional block
-        self.conv5 = nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1)
-        self.bn5 = nn.BatchNorm2d(512)
-        self.pool5 = nn.MaxPool2d(kernel_size=2, stride=2, padding=1)
-
-        # Fully connected layers
-        self.fc1 = nn.Linear(512 * 4 * 4, 4096)
-        self.fc2 = nn.Linear(4096, 4096)
-        self.fc4 = nn.Linear(4096, 2048)
-        self.fc3 = nn.Linear(2048, config.n_classes)
-
-    def forward(self, x):
-        x = self.pool1(F.relu(self.bn1(self.conv1(x))))
-        x = self.pool2(F.relu(self.bn2(self.conv2(x))))
-        x = self.pool3(F.relu(self.bn3(self.conv3(x))))
-        x = self.pool4(F.relu(self.bn4(self.conv4(x))))
-        x = self.pool5(F.relu(self.bn5(self.conv5(x))))
-
-        x = x.view(x.size(0), -1)
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = F.leaky_relu(self.fc4(x))
-        x = self.fc3(x)
-        return x
-
-class MyOwnModel(nn.Module):
-    def __init__(self, config):
-        super(MyOwnModel, self).__init__()
-
-        # First convolutional block
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3)
-        self.bn1 = nn.BatchNorm2d(64)
-        self.pool1 = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
-
-        # Second convolutional block
-        self.conv2 = nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1)
-        self.bn2 = nn.BatchNorm2d(128)
-        self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
-
-        # Third convolutional block
-        self.conv3 = nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1)
-        self.bn3 = nn.BatchNorm2d(256)
-        self.pool3 = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
-
-        # Fourth convolutional block
-        self.conv4 = nn.Conv2d(256, 512, kernel_size=3, stride=1, padding=1)
-        self.bn4 = nn.BatchNorm2d(512)
-        self.pool4 = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
-
-        # Fifth convolutional block
-        self.conv5 = nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1)
-        self.bn5 = nn.BatchNorm2d(512)
-        self.pool5 = nn.MaxPool2d(kernel_size=2, stride=2, padding=0)
-
-        # Fully connected layers
-        self.fc1 = nn.Linear(512 * 3 * 3, 4096)
-        self.fc2 = nn.Linear(4096, 4096)
-        self.fc3 = nn.Linear(4096, config.n_classes)
-
-    def forward(self, x):
-        x = self.pool1(F.relu(self.bn1(self.conv1(x))))
-        x = self.pool2(F.relu(self.bn2(self.conv2(x))))
-        x = self.pool3(F.relu(self.bn3(self.conv3(x))))
-        x = self.pool4(F.relu(self.bn4(self.conv4(x))))
-        x = self.pool5(F.relu(self.bn5(self.conv5(x))))
-
-        x = x.view(x.size(0), -1)
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
-        return x
+    topk_acc /= np.maximum(count, 1)  # Avoid division by zero
+    top_k_accuracy = [(i, acc) for i, acc in enumerate(topk_acc) if count[i] > 0]
+    top_k_accuracy.sort(key=lambda x: x[1], reverse=True)
+    return top_k_accuracy[:k]
 
 
-##
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--model_training', type=str, default='tf_efficientnet_b0')
-
-    args = parser.parse_args()
-
-    #model_pre_train = args.model_pre_train
-    model_training = args.model_training
-
-# def evaluate(val_loader, model, top_images_count=20, save_dir='./'):
-#     model.cuda()
-#     model.eval()
-#     model.training = False
-#     map = AverageMeter()
-#     top_images_info = []  # This will store tuples of (probability, filename)
-#     all_labels = []
-#     all_preds = []
-#
-#     with torch.no_grad():
-#         for batch_idx, (images, target, fnames) in enumerate(val_loader):
-#             img = images.cuda(non_blocking=True)
-#             label = target.cuda(non_blocking=True)
-#             all_labels.append(label.cpu().numpy())
-#
-#             with torch.cuda.amp.autocast():
-#                 logits = model(img)
-#                 preds = logits.softmax(1)
-#                 all_preds.append(preds.cpu().numpy())
-#
-#             valid_map5, valid_acc1, valid_acc5 = map_accuracy(preds, label)
-#             map.update(valid_map5, img.size(0))
-#
-#             # Collect the top probability for each image in the batch and its filename
-#             top_probs, _ = preds.topk(1, dim=1, largest=True, sorted=True)
-#             for idx, prob in enumerate(top_probs):
-#                 # Get the filename for the image
-#                 fname = fnames[idx]
-#                 # Store the probability along with the filename
-#                 top_images_info.append((prob.item(), fname))
-#
-#     # Now we sort the collected images by probability
-#     top_images_info.sort(key=lambda x: x[0], reverse=True)
-#     top_images_info = top_images_info[:top_images_count]
-#
-#     # Save the filenames of the top images to a CSV file
-#     top_image_filenames = [fname for _, fname in top_images_info]
-#     df = pd.DataFrame(top_image_filenames, columns=['filename'])
-#     csv_path = os.path.join(save_dir, 'top_images.csv')
-#     df.to_csv(csv_path, index=False)
-#     print(f"CSV file saved to {csv_path}")
-#
-#     return map.avg
-
-## Edit here
-from sklearn.metrics import precision_recall_fscore_support
-import numpy as np
-import pandas as pd
-import os
-import torch
-
-
-def evaluate(val_loader, model, top_images_count=20, save_dir='/content/drive/MyDrive/EEEM066/logs/'):
-    model.cuda()
-    model.eval()
-    model.training = False
-    map = AverageMeter()
-    top_images_info = []  # This will store tuples of (probability, filename)
-    all_labels = []
-    all_preds = []
-
-    with torch.no_grad():
-        for batch_idx, (images, target, fnames) in enumerate(val_loader):
-            img = images.cuda(non_blocking=True)
-            label = target.cuda(non_blocking=True)
-            all_labels.append(label.cpu().numpy())
-
-            with torch.cuda.amp.autocast():
-                logits = model(img)
-                preds = logits.softmax(1)
-                all_preds.append(preds.cpu().numpy())
-
-            # Assuming map_accuracy is defined elsewhere and updates the AverageMeter
-            valid_map5, valid_acc1, valid_acc5 = map_accuracy(preds, label)
-            map.update(valid_map5, img.size(0))
-
-            # Collect the top probability for each image in the batch and its filename
-            top_probs, _ = preds.topk(1, dim=1, largest=True, sorted=True)
-            for idx, prob in enumerate(top_probs):
-                # Get the filename for the image
-                fname = fnames[idx]
-                # Store the probability along with the filename
-                top_images_info.append((prob.item(), fname))
-
-    # Flatten all labels and predictions
-    all_labels = np.concatenate(all_labels)
-    all_preds = np.concatenate(all_preds)
-
-    # Convert predictions to class labels
-    all_pred_labels = np.argmax(all_preds, axis=1)
-
-    # Calculate precision, recall, and F1 score
-    precision, recall, f1score, _ = precision_recall_fscore_support(
-        all_labels, all_pred_labels, average='macro'
-    )
-
-    print(f'Precision: {precision:.4f}')
-    print(f'Recall: {recall:.4f}')
-    print(f'F1 Score: {f1score:.4f}')
-
-    # Sort the collected images by probability and save to CSV
-    top_images_info.sort(key=lambda x: x[0], reverse=True)
-    top_images_info = top_images_info[:top_images_count]
-
-    top_image_filenames = [fname for _, fname in top_images_info]
-    df = pd.DataFrame(top_image_filenames, columns=['filename'])
-    csv_path = os.path.join(save_dir, 'top_images.csv')
-    df.to_csv(csv_path, index=False)
-    print(f"CSV file saved to {csv_path}")
-
-    return map.avg
-
-
-## Computing the mean average precision, accuracy
+# Computing the mean average precision, accuracy
 def map_accuracy(probs, truth, k=5):
     with torch.no_grad():
         value, top = probs.topk(k, dim=1, largest=True, sorted=True)
@@ -286,22 +63,94 @@ def map_accuracy(probs, truth, k=5):
         return map5, acc1, acc5
 
 
-######################## load file and get splits #############################
-print('reading test file')
-test_files = pd.read_csv("test.csv")
-print('Creating test dataloader')
-test_gen = knifeDataset(test_files, mode="val")
-test_loader = DataLoader(test_gen, batch_size=32, shuffle=False, pin_memory=True, num_workers=8)
+# Evaluate Function
+def evaluate(val_loader, model, n_classes=192):
+    model.cuda()
+    model.eval()
+    model.training = False
+    map = AverageMeter()
+    all_preds = []
+    all_labels = []
+    top_k_accuracies = []
 
-print('loading trained model')
+    with torch.no_grad():
+        for i, (images, target, fnames) in enumerate(val_loader):
+            img = images.cuda(non_blocking=True)
+            label = target.cuda(non_blocking=True)
+
+            with torch.cuda.amp.autocast():
+                logits = model(img)
+                preds = logits.softmax(1)
+
+            all_preds.append(preds.argmax(dim=1).cpu().numpy())
+            all_labels.append(label.cpu().numpy())
+
+            valid_map5, valid_acc1, valid_acc5 = map_accuracy(preds, label)
+            map.update(valid_map5, img.size(0))
+
+            top_k_accuracies.extend(topk_labels_accuracy(preds, label, n_classes=n_classes))
+
+    all_preds = np.concatenate(all_preds)
+    all_labels = np.concatenate(all_labels)
+
+    precision, recall, f1 = compute_metrics(all_preds, all_labels)
+    top_k_accuracy = sorted(top_k_accuracies, key=lambda x: x[1], reverse=True)[:5]
+
+    return map.avg, precision, recall, f1, top_k_accuracy
 
 
-model = timm.create_model(model_training, pretrained=True, num_classes=config.n_classes)
-model.load_state_dict(torch.load('/content/drive/MyDrive/EEEM066/logs/tf_efficientnet_b030.pt'))
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-model.to(device)
+# Loading Animation
+def loading_animation(flag):
+    spinner = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
+    while not flag.is_set():
+        for char in spinner:
+            sys.stdout.write('\r' + char)
+            sys.stdout.flush()
+            time.sleep(0.7)
+    sys.stdout.write('\r     \r')
 
-############################# Training #################################
-print('Evaluating trained model')
-map = evaluate(test_loader, model)
-print("mAP =", map)
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--model_training', type=str, default='mobilevit_xxs')
+    parser.add_argument('--checkpoint', type=str, default='10')
+
+    args = parser.parse_args()
+
+    model_training = args.model_training
+    checkpoint = args.checkpoint
+
+    # Load file and get splits
+    print('Reading test file..')
+    test_files = pd.read_csv("test.csv")
+    print('Creating test dataloader')
+    test_gen = knifeDataset(test_files, mode="val")
+    test_loader = DataLoader(test_gen, batch_size=32, shuffle=False, pin_memory=True, num_workers=8)
+
+    print('loading trained model')
+    model = timm.create_model(model_training, pretrained=True, num_classes=config.n_classes)
+    model.load_state_dict(torch.load("/content/drive/MyDrive/EEEM066/logs/" + model_training + checkpoint + ".pt"))
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+    flag = threading.Event()
+
+
+    # Evaluate Model
+    def evaluate_model(test_loader, model, flag):
+        map, precision, recall, f1, top_k_accuracy = evaluate(test_loader, model, n_classes=config.n_classes)
+        print("\nmAP =", map)
+        print("Weighted Precision:", precision)
+        print("Weighted Recall:", recall)
+        print("Weighted F1 Score:", f1)
+        print("Top-K Accuracy Performing Labels:", top_k_accuracy)
+        flag.set()
+
+
+    loading_thread = threading.Thread(target=loading_animation, args=(flag,))
+    loading_thread.start()
+
+    evaluate_thread = threading.Thread(target=evaluate_model, args=(test_loader, model, flag))
+    evaluate_thread.start()
+
+    evaluate_thread.join()
+    loading_thread.join()
