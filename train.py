@@ -44,7 +44,7 @@ def train(train_loader,model,criterion,optimizer,epoch,valid_accuracy,start):
         scheduler.step()
 
         print('\r',end='',flush=True)
-        message = '%s %5.1f %6.1f        |      %0.3f     |      %0.3f     | %s' % (\
+        message = '%s %5.1f %6.1f        |      %0.5f     |      %0.3f     | %s' % (\
                 "train", i, epoch,losses.avg,valid_accuracy[0],time_to_str((timer() - start),'min'))
         print(message , end='',flush=True)
     log.write("\n")
