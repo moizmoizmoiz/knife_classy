@@ -11,16 +11,18 @@ from torch.utils.data import DataLoader
 from data import knifeDataset
 import timm
 from utils import *
+import argparse
 warnings.filterwarnings('ignore')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_training', type=str, default='mobilevit_xxs')
+    parser.add_argument('--checkpoint', type=str, default='10')
 
     args = parser.parse_args()
 
     model_training = args.model_training
-
+    checkpoint = args.checkpoint
 # Validating the model
 def evaluate(val_loader,model):
     model.cuda()
@@ -67,12 +69,12 @@ test_loader = DataLoader(test_gen,batch_size=64, shuffle=False, pin_memory=True,
 
 print('loading trained model')
 model = timm.create_model(model_training, pretrained=True,num_classes=config.n_classes)
-model.load_state_dict(torch.load('Knife-Effb0-E20.pt'))
+model.load_state_dict(torch.load("/content/drive/MyDrive/EEEM066/logs/"+model_training+checkpoint+".pt"))
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 model.to(device)
 
 ############################# Training #################################
-print('Evaluating trained model')
+print('Evaluating '+model_training)
 map = evaluate(test_loader,model)
 print("mAP =",map)
     

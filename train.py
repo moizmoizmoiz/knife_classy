@@ -15,19 +15,11 @@ import argparse
 from utils import *
 warnings.filterwarnings('ignore')
 
-## Writing the loss and results
-if not os.path.exists("./logs/"):
-    os.mkdir("./logs/")
-log = Logger()
-log.open("logs/%s_log_train.txt")
-log.write("\n----------------------------------------------- [START %s] %s\n\n" % (datetime.now().strftime('%Y-%m-%d %H:%M:%S'), '-' * 51))
-log.write('                           |----- Train -----|----- Valid----|---------|\n')
-log.write('mode     iter     epoch    |       loss      |        mAP    | time    |\n')
-log.write('-------------------------------------------------------------------------------------------\n')
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+    parser.add_argument('--run_name', type=str, default='demo')
     parser.add_argument('--n_classes', type=int, default=192)
     parser.add_argument('--img_width', type=int, default=224)
     parser.add_argument('--img_height', type=int, default=224)
@@ -45,17 +37,21 @@ if __name__ == '__main__':
     config.epochs = args.epochs
     config.learning_rate = args.learning_rate
     model_training = args.model_training
+    run_name = args.run_name
 
 ## Writing the loss and results
-if not os.path.exists("./logs/"):
-    os.mkdir("./logs/")
+if not os.path.exists("/content/drive/MyDrive/EEEM066//logs/"):
+    os.mkdir("/content/drive/MyDrive/EEEM066//logs/")
 log = Logger()
-log.open("logs/%s_log_train.txt")
-log.write("\n----------------------------------------------- [START %s] %s\n\n" % (
-    datetime.now().strftime('%Y-%m-%d %H:%M:%S'), '-' * 51))
-log.write('                           |----- Train -----|----- Valid----|---------|\n')
-log.write('mode     iter     epoch    |       loss      |        mAP    | time    |\n')
-log.write('-------------------------------------------------------------------------------------------\n')
+log.open("logs/"+model_training+"_log_train.txt"+run_name)
+
+log.write('\n          '  +model_training+  '                \n\n')
+
+log.write("\n──────────────────────────────────────── [START %s] %s\n\n" % (
+    datetime.now().strftime('%Y-%m-%d %H:%M:%S'), '─' * 21))
+log.write('                           ┠───── Train ─────┼───── Valid ───┼─────────┨\n')
+log.write('mode     iter     epoch    ┃       loss      │        mAP    │ time    ┃\n')
+log.write('────────────────────────────────────────────────────────────────────────\n')
 
 train_epoch_arr, train_loss_arr, train_map_avg_arr, train_i_arr = [], [], [], []
 val_epoch_arr, val_loss_arr, val_map_avg_arr, val_i_arr = [], [], [], []
@@ -82,7 +78,7 @@ def train(train_loader,model,criterion,optimizer,epoch,valid_accuracy,start):
         scheduler.step()
 
         print('\r',end='',flush=True)
-        message = '%s %5.1f %6.1f        |      %0.5f     |      %0.3f     | %s' % (\
+        message = '%s %5.1f %6.1f        │      %0.5f     │      %0.3f     │ %s' % (\
                 "train", i, epoch,losses.avg,valid_accuracy[0],time_to_str((timer() - start),'min'))
         print(message , end='',flush=True)
     log.write("\n")
@@ -108,7 +104,7 @@ def evaluate(val_loader,model,criterion,epoch,train_loss,start):
             valid_map5, valid_acc1, valid_acc5 = map_accuracy(preds, label)
             map.update(valid_map5,img.size(0))
             print('\r',end='',flush=True)
-            message = '%s   %5.1f %6.1f       |      %0.3f     |      %0.3f    | %s' % (\
+            message = '%s   %5.1f %6.1f       │      %0.3f     │      %0.3f    │ %s' % (\
                     "val", i, epoch, train_loss[0], map.avg,time_to_str((timer() - start),'min'))
             print(message, end='',flush=True)
         log.write("\n")  
@@ -160,8 +156,6 @@ for epoch in range(0,config.epochs):
     train_metrics = train(train_loader,model,criterion,optimizer,epoch,val_metrics,start)
     val_metrics = evaluate(val_loader,model,criterion,epoch,train_metrics,start)
     ## Saving the model
-    filename = "Knife-Effb0-E" + str(epoch + 1)+  ".pt"
+    filename = "/content/drive/MyDrive/EEEM066/logs/"+model_training+str(epoch + 1)+".pt"
     torch.save(model.state_dict(), filename)
-    
 
-   
