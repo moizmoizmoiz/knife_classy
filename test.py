@@ -118,3 +118,39 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     model_training = args.model_training
+    checkpoint = args.checkpoint
+
+    # Load file and get splits
+    print('Reading test file..')
+    test_files = pd.read_csv("test.csv")
+    print('Creating test dataloader')
+    test_gen = knifeDataset(test_files, mode="val")
+    test_loader = DataLoader(test_gen, batch_size=32, shuffle=False, pin_memory=True, num_workers=8)
+
+    print('loading trained model')
+    model = timm.create_model(model_training, pretrained=True, num_classes=config.n_classes)
+    model.load_state_dict(torch.load("/content/drive/MyDrive/EEEM066/logs/" + model_training + checkpoint + ".pt"))
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+    flag = threading.Event()
+
+
+    # Evaluate Model
+    def evaluate_model(test_loader, model, flag):
+        map, precision, recall, f1, top_k_accuracy = evaluate(test_loader, model, n_classes=config.n_classes)
+        print("\nmAP =", map)
+        print("Weighted Precision:", precision)
+        print("Weighted Recall:", recall)
+        print("Weighted F1 Score:", f1)
+        print("Top-K Accuracy Performing Labels:", top_k_accuracy)
+        flag.set()
+
+
+    loading_thread = threading.Thread(target=loading_animation, args=(flag,))
+    loading_thread.start()
+
+    evaluate_thread = threading.Thread(target=evaluate_model, args=(test_loader, model, flag))
+    evaluate_thread.start()
+
+    evaluate_thread.join()
+    loading_thread.join()
