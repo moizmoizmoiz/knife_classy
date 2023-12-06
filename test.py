@@ -20,10 +20,7 @@ warnings.filterwarnings('ignore')
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_training', type=str, default='mobilevit_xxs')
-    parser.add_argument('--chec    kpoint
-    ', type=str, default='
-    10
-    ')
+    parser.add_argument('--checkpoint', type=str, default='10')
 
     args = parser.parse_args()
 
