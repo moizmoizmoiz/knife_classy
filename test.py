@@ -1,54 +1,41 @@
-## import libraries for training
+# import libraries for training
 import warnings
-from datetime import datetime
-from timeit import default_timer as timer
 import pandas as pd
-import torch.optim
-from sklearn.model_selection import train_test_split
-from torch import optim
-from torch.optim import lr_scheduler
-from torch.utils.data import DataLoader
-from data import knifeDataset
+import numpy as np
+import torch
 import timm
-from utils import *
+from torch.utils.data import DataLoader
+from sklearn.metrics import precision_recall_fscore_support
 import argparse
 import sys
 import time
 import threading
+from utils import *
+from data import knifeDataset
+
 warnings.filterwarnings('ignore')
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--model_training', type=str, default='mobilevit_xxs')
-    parser.add_argument('--checkpoint', type=str, default='10')
+# Helper Functions
+def compute_metrics(preds, labels):
+    """
+    Computes weighted precision, recall, F1 score for each label.
+    """
+    precision, recall, f1, _ = precision_recall_fscore_support(labels, preds, average='weighted')
+    return precision, recall, f1
 
-    args = parser.parse_args()
+def topk_labels_accuracy(preds, labels, k=5):
+    """
+    Computes the top-k accuracy for each label.
+    """
+    label_acc = {}
+    topk_preds = preds.topk(k, dim=1)[1]
+    for i in range(preds.shape[1]):
+        correct = (topk_preds == i).float() * (labels == i).float()
+        label_acc[i] = correct.sum().item() / (labels == i).float().sum().item()
+    sorted_label_acc = sorted(label_acc.items(), key=lambda x: x[1], reverse=True)
+    return sorted_label_acc[:k]
 
-    model_training = args.model_training
-    checkpoint = args.checkpoint
-
-
-# Validating the model
-def evaluate(val_loader, model):
-    model.cuda()
-    model.eval()
-    model.training = False
-    map = AverageMeter()
-    with torch.no_grad():
-        for i, (images, target, fnames) in enumerate(val_loader):
-            img = images.cuda(non_blocking=True)
-            label = target.cuda(non_blocking=True)
-
-            with torch.cuda.amp.autocast():
-                logits = model(img)
-                preds = logits.softmax(1)
-
-            valid_map5, valid_acc1, valid_acc5 = map_accuracy(preds, label)
-            map.update(valid_map5, img.size(0))
-    return map.avg
-
-
-## Computing the mean average precision, accuracy
+# Computing the mean average precision, accuracy
 def map_accuracy(probs, truth, k=5):
     with torch.no_grad():
         value, top = probs.topk(k, dim=1, largest=True, sorted=True)
@@ -64,53 +51,86 @@ def map_accuracy(probs, truth, k=5):
         acc5 = accs[1]
         return map5, acc1, acc5
 
+# Evaluate Function
+def evaluate(val_loader, model):
+    model.cuda()
+    model.eval()
+    model.training = False
+    map = AverageMeter()
+    all_preds = []
+    all_labels = []
+    with torch.no_grad():
+        for i, (images, target, fnames) in enumerate(val_loader):
+            img = images.cuda(non_blocking=True)
+            label = target.cuda(non_blocking=True)
 
+            with torch.cuda.amp.autocast():
+                logits = model(img)
+                preds = logits.softmax(1)
+
+            all_preds.append(preds.argmax(dim=1).cpu().numpy())
+            all_labels.append(label.cpu().numpy())
+
+            valid_map5, valid_acc1, valid_acc5 = map_accuracy(preds, label)
+            map.update(valid_map5, img.size(0))
+
+    all_preds = np.concatenate(all_preds)
+    all_labels = np.concatenate(all_labels)
+
+    precision, recall, f1 = compute_metrics(all_preds, all_labels)
+    top_k_accuracy = topk_labels_accuracy(preds, label)
+
+    return map.avg, precision, recall, f1, top_k_accuracy
+
+# Loading Animation
 def loading_animation(flag):
     spinner = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
     while not flag.is_set():
         for char in spinner:
-            sys.stdout.write('\r' + char)  # Carriage return before character
+            sys.stdout.write('\r' + char)
             sys.stdout.flush()
             time.sleep(0.1)
     sys.stdout.write('\r     \r')
 
-######################## load file and get splits #############################
-print('Reading test file..')
-test_files = pd.read_csv("test.csv")
-print('Creating test dataloader')
-test_gen = knifeDataset(test_files,mode="val")
-test_loader = DataLoader(test_gen,batch_size=32, shuffle=False, pin_memory=True, num_workers=8)
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--model_training', type=str, default='mobilevit_xxs')
+    parser.add_argument('--checkpoint', type=str, default='10')
 
-print('loading trained model')
-model = timm.create_model(model_training, pretrained=True,num_classes=config.n_classes)
-model.load_state_dict(torch.load("/content/drive/MyDrive/EEEM066/logs/"+model_training+checkpoint+".pt"))
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-model.to(device)
-flag = threading.Event()
+    args = parser.parse_args()
 
+    model_training = args.model_training
+    checkpoint = args.checkpoint
 
-def evaluate_model(test_loader, model, flag):
-    # Replace with your evaluate function logic
-    map = evaluate(test_loader, model)
-    print("\nmAP =", map)
-    flag.set()
+    # Load file and get splits
+    print('Reading test file..')
+    test_files = pd.read_csv("test.csv")
+    print('Creating test dataloader')
+    test_gen = knifeDataset(test_files, mode="val")
+    test_loader = DataLoader(test_gen, batch_size=32, shuffle=False, pin_memory=True, num_workers=8)
 
+    print('loading trained model')
+    model = timm.create_model(model_training, pretrained=True, num_classes=config.n_classes)
+    model.load_state_dict(torch.load("/content/drive/MyDrive/EEEM066/logs/" + model_training + checkpoint + ".pt"))
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+    flag = threading.Event()
 
+    # Evaluate Model
+    def evaluate_model(test_loader, model, flag):
+        map, precision, recall, f1, top_k_accuracy = evaluate(test_loader, model)
+        print("\nmAP =", map)
+        print("Weighted Precision:", precision)
+        print("Weighted Recall:", recall)
+        print("Weighted F1 Score:", f1)
+        print("Top-K Accuracy Performing Labels:", top_k_accuracy)
+        flag.set()
 
-loading_thread = threading.Thread(target=loading_animation, args=(flag,))
-loading_thread.start()
+    loading_thread = threading.Thread(target=loading_animation, args=(flag,))
+    loading_thread.start()
 
-# Start the model evaluation
-evaluate_thread = threading.Thread(target=evaluate_model, args=(test_loader, model, flag))
-evaluate_thread.start()
+    evaluate_thread = threading.Thread(target=evaluate_model, args=(test_loader, model, flag))
+    evaluate_thread.start()
 
-evaluate_thread.join()  # Wait for the evaluation to complete
-loading_thread.join()  # Ensure the loading animation stops after the evaluation
-
-# print("Evaluation complete.")
-# ############################# Training #################################
-# print('Evaluating '+model_training+' at checkpoint number: '+checkpoint)
-# map = evaluate(test_loader,model)
-# print("mAP =",map)
-    
-   
+    evaluate_thread.join()
+    loading_thread.join()
