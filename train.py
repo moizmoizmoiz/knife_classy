@@ -52,7 +52,7 @@ log.open(file_path, 'w')
 
 # log.open("logs/%s_log_train.txt")
 
-log.write('\n                 '  +model_training+  '                \n\n')
+log.write('\n                     '  +model_training+  '                \n\n')
 
 log.write("\n───────────────────── [START %s] %s\n\n" % (
     datetime.now().strftime('%Y-%m-%d %H:%M:%S'), '─' * 21))
