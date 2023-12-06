@@ -119,7 +119,7 @@ def evaluate(val_loader,model,criterion,epoch,train_loss,start):
     return [map.avg]
 
 ## Computing the mean average precision, accuracy 
-def map_accuracy(probs, truth, k=5):
+def map_accuracy(probs, truth, k=10):
     with torch.no_grad():
         value, top = probs.topk(k, dim=1, largest=True, sorted=True)
         correct = top.eq(truth.view(-1, 1).expand_as(top))
