@@ -54,7 +54,10 @@ log.open(file_path, 'w')
 # log.open("logs/%s_log_train.txt")
 
 log.write('\n                     ' + model_training + '                \n\n')
-log.write('Batch size:'+config.batch_size+ '  Learning rate:'+config.learning_rate+ '  Weight Decay:'+weight_decay)
+log.write('Batch size: ' + str(config.batch_size) +
+          '  Learning rate: ' + str(config.learning_rate) +
+          '  Weight Decay: ' + str(weight_decay))
+
 log.write("\n───────────────────── [START %s] %s\n\n" % (
     datetime.now().strftime('%Y-%m-%d %H:%M:%S'), '─' * 21))
 log.write('                           ┠───── Train ─────┼───── Valid ───┼─────────┨\n')
