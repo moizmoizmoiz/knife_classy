@@ -17,7 +17,7 @@ from torch.utils.tensorboard import SummaryWriter
 import argparse
 from utils import *
 
-writer = SummaryWriter()
+
 
 warnings.filterwarnings('ignore')
 
@@ -44,6 +44,9 @@ if __name__ == '__main__':
     model_training = args.model_training
     weight_decay = args.weight_decay
     run_name = args.run_name
+
+    logdir = "content/drive/MyDrive/EEEM066/logs/TensorBoard_Logs/"+model_training+run_name+datetime.now().strftime("%H%M")
+    writer = SummaryWriter(logdir)
 
     #
     # current_datetime = datetime.datetime.now()

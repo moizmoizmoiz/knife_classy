@@ -146,11 +146,11 @@ if __name__ == '__main__':
     def evaluate_model(test_loader, model, flag):
         map, precision, recall, f1, top_k_accuracy = evaluate(test_loader, model, n_classes=config.n_classes)
         log.write(model_training+checkpoint)
-        log.write("\nmAP = ", str(map))
-        log.write("\nWeighted Precision: ", str(precision))
-        log.write("\nWeighted Recall: ", str(recall))
-        log.write("\nWeighted F1 Score: ", str(f1))
-        log.write("\nTop-K Accuracy Performing Labels: ", str(top_k_accuracy))
+        log.write("\nmAP = "+ str(map))
+        log.write("\nWeighted Precision: "+ str(precision))
+        log.write("\nWeighted Recall: "+ str(recall))
+        log.write("\nWeighted F1 Score: "+ str(f1))
+        log.write("\nTop-K Accuracy Performing Labels: "+ str(top_k_accuracy))
         flag.set()
 
 
