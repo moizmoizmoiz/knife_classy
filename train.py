@@ -26,6 +26,7 @@ if __name__ == '__main__':
     parser.add_argument('--epochs', type=int, default=20)
     parser.add_argument('--learning_rate', type=float, default=0.00005)
     parser.add_argument('--model_training', type=str, default='mobilevit_xxs')
+    parser.add_argument('--weight_decay', type=float, default=None)
 
     args = parser.parse_args()
 
@@ -36,6 +37,7 @@ if __name__ == '__main__':
     config.epochs = args.epochs
     config.learning_rate = args.learning_rate
     model_training = args.model_training
+    weight_decay = args.weight_decay
     run_name = args.run_name
 
 ## Writing the loss and results
@@ -52,7 +54,7 @@ log.open(file_path, 'w')
 # log.open("logs/%s_log_train.txt")
 
 log.write('\n                     ' + model_training + '                \n\n')
-
+log.write('Batch size:'+config.batch_size+ '  Learning rate:'+config.learning_rate+ '  Weight Decay:'+weight_decay)
 log.write("\n───────────────────── [START %s] %s\n\n" % (
     datetime.now().strftime('%Y-%m-%d %H:%M:%S'), '─' * 21))
 log.write('                           ┠───── Train ─────┼───── Valid ───┼─────────┨\n')
@@ -83,7 +85,7 @@ def train(train_loader, model, criterion, optimizer, epoch, valid_accuracy, star
         scheduler.step()
 
         print('\r', end='', flush=True)
-        message = '%s %5.1f %6.1f        │      %0.5f     │      %0.3f     │ %s' % ( \
+        message = '%s %5.1f %6.1f        │      %0.5f     │      %0.3f     │ %s' % (
             "train", i, epoch, losses.avg, valid_accuracy[0], time_to_str((timer() - start), 'min'))
         print(message, end='', flush=True)
     log.write("\n")
@@ -149,9 +151,16 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 model.to(device)
 
 ############################# Parameters #################################
-optimizer = optim.Adam(model.parameters(), lr=config.learning_rate)
-scheduler = lr_scheduler.CosineAnnealingLR(optimizer=optimizer, T_max=config.epochs * len(train_loader), eta_min=0,
-                                           last_epoch=-1)
+if weight_decay:
+    optimizer = optim.AdamW(model.parameters(), lr=config.learning_rate, weight_decay=config.weight_decay)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
+
+else:
+    optimizer = optim.Adam(model.parameters(), lr=config.learning_rate)
+    scheduler = lr_scheduler.CosineAnnealingLR(optimizer=optimizer, T_max=config.epochs * len(train_loader), eta_min=0,
+                                               last_epoch=-1)
+
+
 criterion = nn.CrossEntropyLoss().cuda()
 
 ############################# Training #################################
@@ -165,6 +174,8 @@ for epoch in range(0, config.epochs):
     lr = get_learning_rate(optimizer)
     train_metrics = train(train_loader, model, criterion, optimizer, epoch, val_metrics, start)
     val_metrics = evaluate(val_loader, model, criterion, epoch, train_metrics, start)
+    current_lr = scheduler.get_last_lr()[0]
+    print(f"Epoch {epoch + 1}, Current Learning Rate: {current_lr}")
     ## Saving the model
     filename = "/content/drive/MyDrive/EEEM066/logs/" + model_training + str(epoch + 1) + ".pt"
     torch.save(model.state_dict(), filename)
