@@ -120,6 +120,13 @@ if __name__ == '__main__':
     model_training = args.model_training
     checkpoint = args.checkpoint
 
+    if not os.path.exists("./logs/"):
+        os.mkdir("./logs/")
+    log = Logger()
+
+    file_path = "/content/drive/MyDrive/EEEM066/logs/" + model_training + "_log_test.txt"
+    log.open(file_path, 'w')
+
     # Load file and get splits
     print('Reading test file..')
     test_files = pd.read_csv("test.csv")
@@ -138,11 +145,12 @@ if __name__ == '__main__':
     # Evaluate Model
     def evaluate_model(test_loader, model, flag):
         map, precision, recall, f1, top_k_accuracy = evaluate(test_loader, model, n_classes=config.n_classes)
-        print("\nmAP =", map)
-        print("Weighted Precision:", precision)
-        print("Weighted Recall:", recall)
-        print("Weighted F1 Score:", f1)
-        print("Top-K Accuracy Performing Labels:", top_k_accuracy)
+        log.write(model_training+checkpoint)
+        log.write("\nmAP =", map)
+        log.write("Weighted Precision:", precision)
+        log.write("Weighted Recall:", recall)
+        log.write("Weighted F1 Score:", f1)
+        log.write("Top-K Accuracy Performing Labels:", top_k_accuracy)
         flag.set()
 
 
