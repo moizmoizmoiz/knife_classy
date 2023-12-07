@@ -150,7 +150,9 @@ val_metrics = [0]
 scaler = torch.cuda.amp.GradScaler()
 start = timer()
 print(optimizer)
-print(model)
+
+# Calculate the number of parameters
+total_params = sum(p.numel() for p in model.parameters())
 
 
 if not os.path.exists("./logs/"):
@@ -162,7 +164,7 @@ log.open(file_path, 'w')
 
 # log.open("logs/%s_log_train.txt")
 
-log.write('\n                     ' + model_training + '                \n\n')
+log.write('\n                  ' + model_training + 'params:' + total_params+'                \n\n')
 log.write('Batch size: ' + str(config.batch_size) +
           '  Learning rate: ' + str(config.learning_rate) +
           '  Weight Decay: ' + str(weight_decay))
