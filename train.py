@@ -11,8 +11,14 @@ from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
 from data import knifeDataset
 import timm
+import os.path as osp
+from torch.utils.tensorboard import SummaryWriter
+from src.loggers import Logger
 import argparse
 from utils import *
+
+logger = Logger()
+writer = logger.create_summary_writer()
 
 warnings.filterwarnings('ignore')
 
@@ -39,6 +45,13 @@ if __name__ == '__main__':
     model_training = args.model_training
     weight_decay = args.weight_decay
     run_name = args.run_name
+
+
+    current_datetime = datetime.datetime.now()
+    formatted_datetime = current_datetime.strftime("%Y-%m-%d--%H%M%S")
+    log_name = formatted_datetime+"_"+model_training+'-'+run_name+".txt"
+    sys.stdout = Logger(osp.join('/content/drive/MyDrive/EEEM066/logs/TensorBoard_Logs/', log_name))
+
 
 ## Writing the loss and results
 # if not os.path.exists("/content/drive/MyDrive/EEEM066/logs/"):
@@ -71,6 +84,8 @@ def train(train_loader, model, criterion, optimizer, epoch, valid_accuracy, star
         print(message, end='', flush=True)
     log.write("\n")
     log.write(message)
+    writer.add_scalar('Loss/Epoch', losses.avg, epoch)
+    writer.add_scalar('Val_Acc/Epoch', valid_accuracy[0], epoch)
 
     return [losses.avg]
 
@@ -176,6 +191,14 @@ log.write('                           ┠───── Train ─────�
 log.write('mode     iter     epoch    ┃       loss      │        mAP    │ time    ┃\n')
 log.write('────────────────────────────────────────────────────────────────────────\n')
 
+
+writer.add_text('Architecture', model_training)
+writer.add_text('Parmas', str(total_params))
+writer.add_text('LR', str(config.learning_rate))
+writer.add_text('WeightDecay', str(weight_decay))
+writer.add_text('Epochs', str(config.epochs))
+writer.add_text('Batch Size', str(config.batch_size))
+
 train_epoch_arr, train_loss_arr, train_map_avg_arr, train_i_arr = [], [], [], []
 val_epoch_arr, val_loss_arr, val_map_avg_arr, val_i_arr = [], [], [], []
 
@@ -186,7 +209,11 @@ for epoch in range(0, config.epochs):
     train_metrics = train(train_loader, model, criterion, optimizer, epoch, val_metrics, start)
     val_metrics = evaluate(val_loader, model, criterion, epoch, train_metrics, start)
     current_lr = scheduler.get_last_lr()[0]
+    writer.add_scalar('Learning Rate', current_lr, epoch)
     print(f"  Current LR: {current_lr}")
     ## Saving the model
     filename = "/content/drive/MyDrive/EEEM066/logs/" + model_training + str(epoch + 1) + ".pt"
     torch.save(model.state_dict(), filename)
+
+
+writer.close()
