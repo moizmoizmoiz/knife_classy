@@ -137,7 +137,7 @@ if weight_decay:
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
 
 else:
-    optimizer = optim.Adam(model.parameters(), lr=config.learning_rate)
+    optimizer = optim.Adam(model.parameters(), lr=config.learning_rate, amsgrad=True)
     scheduler = lr_scheduler.CosineAnnealingLR(optimizer=optimizer, T_max=config.epochs * len(train_loader), eta_min=0,
                                                last_epoch=-1)
 
@@ -150,7 +150,8 @@ val_metrics = [0]
 scaler = torch.cuda.amp.GradScaler()
 start = timer()
 print(optimizer)
-
+print(' ')
+print(scheduler)
 # Calculate the number of parameters
 total_params = sum(p.numel() for p in model.parameters())
 
@@ -164,7 +165,7 @@ log.open(file_path, 'w')
 
 # log.open("logs/%s_log_train.txt")
 
-log.write('\n                  ' + model_training + 'params:' + str(total_params) +'                \n\n')
+log.write('\n                  ' + model_training + '   params: ' + str(total_params) +'                \n\n')
 log.write('Batch size: ' + str(config.batch_size) +
           '  Learning rate: ' + str(config.learning_rate) +
           '  Weight Decay: ' + str(weight_decay))
