@@ -18,6 +18,7 @@ import argparse
 from utils import *
 
 writer = SummaryWriter()
+
 warnings.filterwarnings('ignore')
 
 if __name__ == '__main__':
@@ -44,11 +45,11 @@ if __name__ == '__main__':
     weight_decay = args.weight_decay
     run_name = args.run_name
 
-
-    current_datetime = datetime.datetime.now()
-    formatted_datetime = current_datetime.strftime("%Y-%m-%d--%H%M%S")
-    log_name = formatted_datetime+"_"+model_training+'-'+run_name+".txt"
-    sys.stdout = Logger(osp.join('/content/drive/MyDrive/EEEM066/logs/TensorBoard_Logs/', log_name))
+    #
+    # current_datetime = datetime.datetime.now()
+    # formatted_datetime = current_datetime.strftime("%Y-%m-%d--%H%M%S")
+    # log_name = formatted_datetime+"_"+model_training+'-'+run_name+".txt"
+    # sys.stdout = Logger(osp.join('/content/drive/MyDrive/EEEM066/logs/TensorBoard_Logs/', log_name))
 
 
 ## Writing the loss and results
