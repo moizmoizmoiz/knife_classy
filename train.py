@@ -178,7 +178,7 @@ for epoch in range(0, config.epochs):
     train_metrics = train(train_loader, model, criterion, optimizer, epoch, val_metrics, start)
     val_metrics = evaluate(val_loader, model, criterion, epoch, train_metrics, start)
     current_lr = scheduler.get_last_lr()[0]
-    print(f"Epoch {epoch + 1}, Current Learning Rate: {current_lr}")
+    print(f"  Current LR: {current_lr}")
     ## Saving the model
     filename = "/content/drive/MyDrive/EEEM066/logs/" + model_training + str(epoch + 1) + ".pt"
     torch.save(model.state_dict(), filename)
