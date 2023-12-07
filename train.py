@@ -13,13 +13,10 @@ from data import knifeDataset
 import timm
 import os.path as osp
 from torch.utils.tensorboard import SummaryWriter
-from src.loggers import Logger
 import argparse
 from utils import *
 
-logger = Logger()
-writer = logger.create_summary_writer()
-
+writer = SummaryWriter()
 warnings.filterwarnings('ignore')
 
 if __name__ == '__main__':
