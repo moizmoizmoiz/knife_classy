@@ -164,7 +164,7 @@ log.open(file_path, 'w')
 
 # log.open("logs/%s_log_train.txt")
 
-log.write('\n                  ' + model_training + 'params:' + total_params+'                \n\n')
+log.write('\n                  ' + model_training + 'params:' + str(total_params) +'                \n\n')
 log.write('Batch size: ' + str(config.batch_size) +
           '  Learning rate: ' + str(config.learning_rate) +
           '  Weight Decay: ' + str(weight_decay))
