@@ -58,7 +58,7 @@ log.write('Batch size: ' + str(config.batch_size) +
           '  Learning rate: ' + str(config.learning_rate) +
           '  Weight Decay: ' + str(weight_decay))
 
-log.write("\n───────────────────── [START %s] %s\n\n" % (
+log.write("\n\n\n───────────────────── [START %s] %s\n\n" % (
     datetime.now().strftime('%Y-%m-%d %H:%M:%S'), '─' * 21))
 log.write('                           ┠───── Train ─────┼───── Valid ───┼─────────┨\n')
 log.write('mode     iter     epoch    ┃       loss      │        mAP    │ time    ┃\n')
@@ -155,7 +155,7 @@ model.to(device)
 
 ############################# Parameters #################################
 if weight_decay:
-    optimizer = optim.AdamW(model.parameters(), lr=config.learning_rate, weight_decay=config.weight_decay)
+    optimizer = optim.AdamW(model.parameters(), lr=config.learning_rate, weight_decay=weight_decay)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
 
 else:
