@@ -11,6 +11,7 @@ from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
 from data import knifeDataset
 import timm
+import numpy as np
 import os.path as osp
 from torch.utils.tensorboard import SummaryWriter
 import argparse
