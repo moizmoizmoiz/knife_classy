@@ -171,6 +171,7 @@ start_epoch = 0
 val_metrics = [0]
 scaler = torch.cuda.amp.GradScaler()
 start = timer()
+print(optimizer)
 
 ######## train
 for epoch in range(0, config.epochs):
