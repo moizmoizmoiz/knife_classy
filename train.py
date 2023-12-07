@@ -44,28 +44,6 @@ if __name__ == '__main__':
 # if not os.path.exists("/content/drive/MyDrive/EEEM066/logs/"):
 #     os.mkdir("/content/drive/MyDrive/EEEM066/logs/")
 
-if not os.path.exists("./logs/"):
-    os.mkdir("./logs/")
-log = Logger()
-
-file_path = "/content/drive/MyDrive/EEEM066/logs/" + model_training + "_log_train.txt"
-log.open(file_path, 'w')
-
-# log.open("logs/%s_log_train.txt")
-
-log.write('\n                     ' + model_training + '                \n\n')
-log.write('Batch size: ' + str(config.batch_size) +
-          '  Learning rate: ' + str(config.learning_rate) +
-          '  Weight Decay: ' + str(weight_decay))
-
-log.write("\n\n\n───────────────────── [START %s] %s\n\n" % (
-    datetime.now().strftime('%Y-%m-%d %H:%M:%S'), '─' * 21))
-log.write('                           ┠───── Train ─────┼───── Valid ───┼─────────┨\n')
-log.write('mode     iter     epoch    ┃       loss      │        mAP    │ time    ┃\n')
-log.write('────────────────────────────────────────────────────────────────────────\n')
-
-train_epoch_arr, train_loss_arr, train_map_avg_arr, train_i_arr = [], [], [], []
-val_epoch_arr, val_loss_arr, val_map_avg_arr, val_i_arr = [], [], [], []
 
 
 ## Training the model
@@ -172,6 +150,32 @@ val_metrics = [0]
 scaler = torch.cuda.amp.GradScaler()
 start = timer()
 print(optimizer)
+print(model)
+
+
+if not os.path.exists("./logs/"):
+    os.mkdir("./logs/")
+log = Logger()
+
+file_path = "/content/drive/MyDrive/EEEM066/logs/" + model_training + "_log_train.txt"
+log.open(file_path, 'w')
+
+# log.open("logs/%s_log_train.txt")
+
+log.write('\n                     ' + model_training + '                \n\n')
+log.write('Batch size: ' + str(config.batch_size) +
+          '  Learning rate: ' + str(config.learning_rate) +
+          '  Weight Decay: ' + str(weight_decay))
+
+log.write("\n\n\n───────────────────── [START %s] %s\n\n" % (
+    datetime.now().strftime('%Y-%m-%d %H:%M:%S'), '─' * 21))
+log.write('                           ┠───── Train ─────┼───── Valid ───┼─────────┨\n')
+log.write('mode     iter     epoch    ┃       loss      │        mAP    │ time    ┃\n')
+log.write('────────────────────────────────────────────────────────────────────────\n')
+
+train_epoch_arr, train_loss_arr, train_map_avg_arr, train_i_arr = [], [], [], []
+val_epoch_arr, val_loss_arr, val_map_avg_arr, val_i_arr = [], [], [], []
+
 
 ######## train
 for epoch in range(0, config.epochs):
