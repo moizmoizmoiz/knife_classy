@@ -213,9 +213,11 @@ for epoch in range(0, config.epochs):
     current_lr = scheduler.get_last_lr()[0]
     writer.add_scalar('Learning Rate', current_lr, epoch)
     print(f"  Current LR: {current_lr}")
-    ## Saving the model
-    filename = "/content/drive/MyDrive/EEEM066/logs/" + model_training + str(epoch + 1) + ".pt"
-    torch.save(model.state_dict(), filename)
+
+    # Save the model after every 10 epochs
+    if (epoch + 1) % 10 == 0:
+        filename = f"/content/drive/MyDrive/EEEM066/logs/{model_training}{epoch + 1}.pt"
+        torch.save(model.state_dict(), filename)
 
 
 writer.close()
