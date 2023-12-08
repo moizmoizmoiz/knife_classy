@@ -37,7 +37,7 @@ class knifeDataset(Dataset):
                 T.RandomHorizontalFlip(p=0.5),
                 T.ToTensor(),
                 T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-                T.RandomErasing(p=0.1, scale=(0.2, 0.2))
+                T.RandomErasing(p=0.05, scale=(0.2, 0.2))
             ])(X)
         elif self.mode == "val":
             X = T.Compose([
