@@ -23,7 +23,7 @@ class CustomCNN(nn.Module):
 
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
 
-        self.fc1 = nn.Linear(512 * 7 * 7, 512)  # Adjust the input size based on your image dimensions
+        self.fc1 = nn.Linear(512 * 61 * 61, 512)  # Adjust the input size for 244x244 images
         self.relu5 = nn.ReLU()
         self.dropout5 = nn.Dropout(0.2)
 
@@ -41,6 +41,7 @@ class CustomCNN(nn.Module):
         x = self.fc2(x)
         return x
 
-num_classes = 192
+
+num_classes = 192  # 192 classes for your specific task
 model = CustomCNN(num_classes)
 print(model)
