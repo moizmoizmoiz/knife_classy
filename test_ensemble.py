@@ -108,7 +108,7 @@ if __name__ == '__main__':
     model2_path = args.model2_path
 
     # Load models
-    model1 = timm.create_model('tf efficientnet b7', pretrained=False, num_classes=192)
+    model1 = timm.create_model('tf_efficientnet_b7', pretrained=False, num_classes=192)
     model1.load_state_dict(torch.load(model1_path))
     model1.cuda()
 
